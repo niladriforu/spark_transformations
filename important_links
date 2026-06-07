@@ -1,0 +1,11 @@
+http://127.0.0.1:8888/tree
+
+http://127.0.0.1:8888/notebooks/spark_transformation_setup.ipynb
+
+http://127.0.0.1:8080          # Spark Master UI (cluster + workers only)
+
+http://127.0.0.1:4040          # Spark Application UI (Jobs, Stages, SQL)
+
+http://127.0.0.1:3000          # Unity Catalog UI (browse catalogs/tables)
+
+http://127.0.0.1:8081          # Unity Catalog API only ("Hello, Unity Catalog!")
