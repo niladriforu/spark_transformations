@@ -1,3 +1,8 @@
+from pyspark.sql import SparkSession
+
+spark = SparkSession.getActiveSession() or SparkSession.builder.getOrCreate()
+
+
 def environment():
     return spark.conf.get("pipeline.environment", "dev")
 
