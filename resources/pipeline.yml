@@ -10,7 +10,12 @@ resources:
       continuous: false
       configuration:
         pipeline.reprocess_days: ${var.reprocess_days}
+        pipeline.environment: ${var.environment}
+        pipeline.catalog: ${var.catalog}
+        pipeline.schema: ${var.schema}
       libraries:
+        - file:
+            path: ../src/transformations/pipeline_config.py
         - file:
             path: ../src/transformations/schemas.py
         - file:

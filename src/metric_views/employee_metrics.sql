@@ -1,9 +1,9 @@
-CREATE OR REPLACE VIEW workspace.default.employee_metrics
+CREATE OR REPLACE VIEW workspace.default.employee_metrics__ENV__
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  source: workspace.default.silver_curated_events
+  source: workspace.default.silver_curated_events__ENV__
   comment: Employee metrics for HR analytics and reporting
   
   dimensions:

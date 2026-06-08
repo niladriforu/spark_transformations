@@ -12,11 +12,12 @@
 import dlt
 from datetime import datetime, timedelta
 from schemas import employee_schema_raw
+from pipeline_config import table
 from pyspark.sql import functions as F
 
 
 @dlt.table(
-  name="raw_events",
+  name=table("raw_events"),
   comment="Raw events from Volume",
   cluster_by=["dept_id", "joining_date"],
   table_properties={
@@ -26,7 +27,7 @@ from pyspark.sql import functions as F
     "delta.autoOptimize.autoCompact": "true",    # merge small files automatically
     "delta.targetFileSize": "1gb",               # this is where you specify size of files while writing the data
     "delta.enableChangeDataFeed": "true",
-    "delta.checkpointInterval": "100",
+    "delta.checkpointInterval": "50",
     "delta.dataSkippingNumIndexedCols": "32"
   }
 )
@@ -75,4 +76,3 @@ def raw_events():
     
     # Return raw data as strings - parsing happens in silver layer
     return df
-

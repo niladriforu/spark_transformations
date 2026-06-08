@@ -1,10 +1,11 @@
 import dlt
+from pipeline_config import table, qualified_table
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
 
 @dlt.table(
-    name="silver_curated_events",
+    name=table("silver_curated_events"),
     comment="Curated employee events for analytics and metric views",
     cluster_by=["dept_id", "joining_date"],
     table_properties={
@@ -17,7 +18,7 @@ from pyspark.sql.window import Window
     },
 )
 def silver_curated_events():
-    df = dlt.read_stream("workspace.default.silver_events")
+    df = dlt.read_stream(qualified_table("silver_events"))
     window = Window.partitionBy("empid").orderBy(F.col("upd_tmst").desc_nulls_last())
 
     return (

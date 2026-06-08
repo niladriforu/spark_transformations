@@ -31,23 +31,39 @@ The token needs permissions to create/update DLT pipelines, run pipelines, and e
 1. **Validate** — `databricks bundle validate`
 2. **Deploy** — syncs DLT pipeline code and creates/updates `employee-cdc-pipeline-<target>`
 3. **Run pipeline** — starts a DLT pipeline update
-4. **Metric view** — runs `src/metric_views/employee_metrics.sql` on the SQL warehouse
+4. **Metric view** — creates `employee_metrics_<env>` on the SQL warehouse
+
+### Environment-based naming
+
+Table and metric view names include the bundle target as a suffix (`dev` or `prod`):
+
+| Object | dev example | prod example |
+|--------|-------------|--------------|
+| Raw table | `raw_events_dev` | `raw_events_prod` |
+| Silver table | `silver_events_dev` | `silver_events_prod` |
+| Bad records | `silver_bad_events_dev` | `silver_bad_events_prod` |
+| Curated table | `silver_curated_events_dev` | `silver_curated_events_prod` |
+| Metric view | `employee_metrics_dev` | `employee_metrics_prod` |
+
+The suffix is set via `pipeline.environment` in `resources/pipeline.yml`, driven by the `environment` variable in `databricks.yml`.
 
 ### 4. Local deployment (optional)
 
 ```bash
 export DATABRICKS_HOST="https://dbc-xxxxx.cloud.databricks.com"
 export DATABRICKS_TOKEN="dapi..."
+export ENV=dev
 databricks bundle validate -t dev
 databricks bundle deploy -t dev
 databricks bundle run employee_cdc_pipeline -t dev
-databricks sql execute --warehouse-id "<warehouse-id>" --file src/metric_views/employee_metrics.sql
+sed "s/__ENV__/${ENV}/g" src/metric_views/employee_metrics.sql > /tmp/employee_metrics_${ENV}.sql
+databricks sql execute --warehouse-id "<warehouse-id>" --file /tmp/employee_metrics_${ENV}.sql
 ```
 
 ### Pipeline lineage
 
 ```
-UC Volume (CSV) → raw_events → silver_events / silver_bad_events → silver_curated_events → employee_metrics
+UC Volume (CSV) → raw_events_<env> → silver_events_<env> / silver_bad_events_<env> → silver_curated_events_<env> → employee_metrics_<env>
 ```
 
 ---

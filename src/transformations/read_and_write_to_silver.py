@@ -1,6 +1,6 @@
 import dlt
-from datetime import datetime, timedelta
 from schemas_silver import employee_schema_silver
+from pipeline_config import table, qualified_table
 from pyspark.sql import functions as F
 
 def add_quality_checks(df_raw):
@@ -50,9 +50,8 @@ def add_quality_checks(df_raw):
 
 
 
-
 @dlt.table(
-  name="silver_events",
+  name=table("silver_events"),
   comment="Raw events from Volume",
   cluster_by=["dept_id", "joining_date"],
   table_properties={
@@ -60,18 +59,18 @@ def add_quality_checks(df_raw):
     "delta.autoOptimize.autoCompact": "true",
     "delta.targetFileSize": "1gb",
     "delta.enableChangeDataFeed": "true",
-    "delta.checkpointInterval": "100",
+    "delta.checkpointInterval": "50",
     "delta.dataSkippingNumIndexedCols": "32"
   }
 )
 def silver_events():
-    df_raw = dlt.read_stream("workspace.default.raw_events")
+    df_raw = dlt.read_stream(qualified_table("raw_events"))
     df_with_quality = add_quality_checks(df_raw)
     # Return only good records
     return df_with_quality.filter(~F.col("_is_bad")).drop("_is_bad", "_rescue_data")
 
 @dlt.table(
-  name="silver_bad_events",
+  name=table("silver_bad_events"),
   comment="silver bad events ",
   cluster_by=["dept_id", "joining_date"],
   table_properties={
@@ -84,7 +83,7 @@ def silver_events():
   }
 )
 def silver_bad_events():
-    df_raw = spark.readStream.table("workspace.default.raw_events")
+    df_raw = spark.readStream.table(qualified_table("raw_events"))
     df_with_quality = add_quality_checks(df_raw)
     # Return only good records
     return df_with_quality.filter(F.col("_is_bad"))
