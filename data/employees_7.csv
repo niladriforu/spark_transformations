@@ -1,0 +1,4 @@
+empid,empname,dob,salary,joining_date,dept_id,create_tmst,upd_tmst,bonus,region
+E006,David Lee,6/5/1987,70000.00,8/1/2019,D006,6/6/2024,6/6/2024,5000,US-WEST
+E007,"Evans, Mike",7/15/1991,48000.00,ONLY_SIX_COLUMNS_HERE
+E008,Frank Green,8/20/1993,52000.00,10/1/2021,D008,6/8/2024,6/8/2024,3000,US-EAST
