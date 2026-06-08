@@ -2,6 +2,9 @@ import dlt
 from schemas_silver import employee_schema_silver
 from pipeline_config import table, qualified_table
 from pyspark.sql import functions as F
+from pyspark.sql import SparkSession
+
+spark = SparkSession.getActiveSession() or SparkSession.builder.getOrCreate()
 
 def add_quality_checks(df_raw):
     """Helper function to add casting and quality check columns"""
