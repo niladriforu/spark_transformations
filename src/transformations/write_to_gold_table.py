@@ -15,7 +15,6 @@ spark = SparkSession.getActiveSession() or SparkSession.builder.getOrCreate()
   table_properties={
     "delta.autoOptimize.optimizeWrite": "true",
     "delta.autoOptimize.autoCompact": "true",
-    "delta.enablePredictiveOptimization": "true",
     "delta.targetFileSize": "256mb",
     "delta.enableChangeDataFeed": "true",
     "delta.enableDeletionVectors": "true",
