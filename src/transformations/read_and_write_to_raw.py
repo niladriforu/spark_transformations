@@ -1,3 +1,14 @@
+from datetime import datetime, timedelta
+
+from pyspark import pipelines as dp
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+
+from pipeline_config import table
+from schemas import employee_schema_raw
+
+spark = SparkSession.getActiveSession() or SparkSession.builder.getOrCreate()
+
 # if you want to pass AWS credentials, uncomment the following lines
 # spark.conf.set("fs.s3a.access.key", dbutils.secrets.get(scope="aws", key="access_key"))
 # spark.conf.set("fs.s3a.secret.key", dbutils.secrets.get(scope="aws", key="secret_key"))
@@ -9,14 +20,8 @@
 # When files are uploaded with date partitioning, some things to keep in mind are:
 # Months, days, hours, minutes need to be left padded with zeros to ensure lexical ordering (should be uploaded as hour=03, instead of hour=3 or 2021/05/03 instead of 2021/5/3).
 
-import dlt
-from datetime import datetime, timedelta
-from schemas import employee_schema_raw
-from pipeline_config import table
-from pyspark.sql import functions as F
 
-
-@dlt.table(
+@dp.table(
   name=table("raw_events"),
   comment="Raw events from Volume",
   cluster_by=["dept_id", "joining_date"],

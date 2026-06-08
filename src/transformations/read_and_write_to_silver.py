@@ -1,10 +1,12 @@
-import dlt
-from schemas_silver import employee_schema_silver
-from pipeline_config import table, qualified_table
-from pyspark.sql import functions as F
+from pyspark import pipelines as dp
 from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+
+from pipeline_config import qualified_table, table
+from schemas_silver import employee_schema_silver
 
 spark = SparkSession.getActiveSession() or SparkSession.builder.getOrCreate()
+
 
 def add_quality_checks(df_raw):
     """Helper function to add casting and quality check columns"""
@@ -53,7 +55,7 @@ def add_quality_checks(df_raw):
 
 
 
-@dlt.table(
+@dp.table(
   name=table("silver_events"),
   comment="Raw events from Volume",
   cluster_by=["dept_id", "joining_date"],
@@ -67,12 +69,12 @@ def add_quality_checks(df_raw):
   }
 )
 def silver_events():
-    df_raw = dlt.read_stream(qualified_table("raw_events"))
+    df_raw = spark.readStream.table(qualified_table("raw_events"))
     df_with_quality = add_quality_checks(df_raw)
     # Return only good records
     return df_with_quality.filter(~F.col("_is_bad")).drop("_is_bad", "_rescue_data")
 
-@dlt.table(
+@dp.table(
   name=table("silver_bad_events"),
   comment="silver bad events ",
   cluster_by=["dept_id", "joining_date"],

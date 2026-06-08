@@ -26,3 +26,5 @@ resources:
             path: ../src/transformations/read_and_write_to_silver.py
         - file:
             path: ../src/transformations/read_and_write_to_curated.py
+        - file:
+            path: ../src/transformations/write_to_gold_table.py
