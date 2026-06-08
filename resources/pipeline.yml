@@ -1,12 +1,12 @@
 resources:
   pipelines:
     employee_cdc_pipeline:
-      name: employee-cdc-pipeline-${bundle.target}
+      name: cdc-automated-workflow-${bundle.target}
       catalog: ${var.catalog}
       target: ${var.schema}
       channel: CURRENT
       edition: ADVANCED
-      photon: true
+      serverless: true
       continuous: false
       configuration:
         pipeline.reprocess_days: ${var.reprocess_days}

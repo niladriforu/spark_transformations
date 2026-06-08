@@ -29,7 +29,7 @@ The token needs permissions to create/update DLT pipelines, run pipelines, and e
 ### 3. What the workflow deploys
 
 1. **Validate** — `databricks bundle validate`
-2. **Deploy** — syncs DLT pipeline code and creates/updates `employee-cdc-pipeline-<target>`
+2. **Deploy** — syncs DLT pipeline code and creates/updates `cdc-automated-workflow-<target>`
 3. **Run pipeline** — starts a DLT pipeline update
 4. **Metric view** — creates `employee_metrics_<env>` on the SQL warehouse
 
@@ -49,7 +49,12 @@ The suffix is set via `pipeline.environment` in `resources/pipeline.yml`, driven
 
 ### 4. Local deployment (optional)
 
+Requires Databricks CLI **v0.297.2+** (or other patched version — see troubleshooting below).
+
 ```bash
+# Upgrade CLI if you hit the Terraform GPG key error
+curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/v0.297.2/install.sh | sh
+
 export DATABRICKS_HOST="https://dbc-xxxxx.cloud.databricks.com"
 export DATABRICKS_TOKEN="dapi..."
 export ENV=dev
@@ -59,6 +64,23 @@ databricks bundle run employee_cdc_pipeline -t dev
 sed "s/__ENV__/${ENV}/g" src/metric_views/employee_metrics.sql > /tmp/employee_metrics_${ENV}.sql
 databricks sql execute --warehouse-id "<warehouse-id>" --file /tmp/employee_metrics_${ENV}.sql
 ```
+
+### Troubleshooting: Terraform GPG key expired
+
+If deploy fails with:
+
+```text
+error downloading Terraform: unable to verify checksums signature: openpgp: key expired
+```
+
+Upgrade the Databricks CLI to a patched version ([databricks/cli#5022](https://github.com/databricks/cli/issues/5022)):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/v0.297.2/install.sh | sh
+databricks --version   # should show v0.297.2 or newer patched release
+```
+
+Then retry `databricks bundle deploy -t dev`.
 
 ### Pipeline lineage
 
