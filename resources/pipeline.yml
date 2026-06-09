@@ -23,11 +23,11 @@ resources:
         - file:
             path: ../src/transformations/read_and_write_to_raw.py
         - file:
-            path: ../src/transformations/read_and_write_to_silver.py
+            path: ../src/transformations/read_and_write_to_silver_schema_enforced.py
         - file:
-            path: ../src/transformations/read_and_write_to_curated.py
+            path: ../src/transformations/read_and_write_to_silver_curated_dlt_dq.py
         - file:
-            path: ../src/transformations/read_and_write_to_curated_alternate_quality.py
+            path: ../src/transformations/read_and_write_to_silver_curated_alternate_dq.py
         - file:
             path: ../src/transformations/write_to_gold_table.py
         - file:

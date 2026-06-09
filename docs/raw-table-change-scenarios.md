@@ -160,6 +160,39 @@ There are two common goals. Pick one (they are mutually exclusive on the same so
 
 Use this when you delete or update raw for operational cleanup but **do not** want silver or gold to change.
 
+### Important: `skipChangeCommits` is a Structured Streaming option
+
+`skipChangeCommits` **only** works on **`spark.readStream`** — set it with `.option()` **before** `.table()`:
+
+```python
+# Works — Structured Streaming read
+spark.readStream \
+    .option("skipChangeCommits", "true") \
+    .table(qualified_table("raw_events"))
+```
+
+It does **not** apply to:
+
+| Read type | Example | `skipChangeCommits`? |
+|-----------|---------|----------------------|
+| Structured Streaming | `spark.readStream.option(...).table(...)` | **Yes** |
+| Batch read | `spark.read.table(...)` | **No** |
+| Materialized view source | `@dp.materialized_view` + `spark.read.table(...)` | **No** |
+| Legacy DLT helper | `dlt.read_stream("table_name")` | **No** — use `spark.readStream` instead |
+
+`create_auto_cdc_flow` has no `skipChangeCommits` parameter. If gold uses AUTO CDC, put the option on the **source view's** `readStream` (see `write_to_gold_table_cdc.py`), not on the flow itself.
+
+**Do not combine** `skipChangeCommits` with `readChangeFeed` + `apply_as_deletes` on the same read. They are opposite strategies (ignore upstream changes vs propagate them). Use one or the other per source read.
+
+### Where to enable it in this pipeline
+
+| File | Function | Reads from | Enable? |
+|------|----------|------------|---------|
+| `read_and_write_to_silver_schema_enforced.py` | `silver_events`, `silver_bad_events` | `raw_events` | **Yes** — required if raw may be edited |
+| `read_and_write_to_silver_curated_dlt_dq.py` | `silver_curated_events`, `silver_curated_bad_events` | `silver_events` | **Yes** — if silver may be edited |
+| `write_to_gold_table_cdc.py` | `gold_employee_source_cdc` | `silver_curated_events` | **Yes** — if curated may be edited |
+| `write_to_gold_table.py` | `gold_employee_summary_deduped` | `silver_curated_events` | **No** — see materialized view note below |
+
 ### Code change — silver layer
 
 In `read_and_write_to_silver_schema_enforced.py`, add `skipChangeCommits` to both `silver_events` and `silver_bad_events`:
@@ -185,7 +218,59 @@ def silver_bad_events():
     return df_with_quality.filter(F.col("_is_bad"))
 ```
 
-Apply the same option anywhere else you stream from a table that might be manually edited (for example, curated reading from silver if you ever delete from silver directly).
+Apply the same option anywhere else you stream from a table that might be manually edited (curated reading from silver, gold CDC reading from curated).
+
+### Code change — curated layer
+
+In `read_and_write_to_silver_curated_dlt_dq.py`:
+
+```python
+def silver_curated_events():
+    return (
+        spark.readStream
+        .option("skipChangeCommits", "true")
+        .table(qualified_table("silver_events"))
+    )
+```
+
+Apply the same pattern to `silver_curated_bad_events` and to `silver_quarantine` in `read_and_write_to_silver_curated_alternate_dq.py` if those paths are active in your pipeline.
+
+### Code change — gold CDC layer
+
+In `write_to_gold_table_cdc.py`, add the option on the source view's streaming read:
+
+```python
+@dp.temporary_view(name=table("gold_employee_source_cdc"))
+def gold_employee_source_cdc():
+    df = (
+        spark.readStream
+        .option("skipChangeCommits", "true")
+        .table(qualified_table("silver_curated_events"))
+    )
+    return df.withColumns({...})
+```
+
+### Gold materialized view — cannot use `skipChangeCommits`
+
+`write_to_gold_table.py` defines a **materialized view** with a batch read:
+
+```python
+@dp.materialized_view(name=table("gold_employee_summary_deduped"), refresh_policy="auto", ...)
+def gold_employee_summary_deduped():
+    df = spark.read.table(qualified_table("silver_curated_events"))  # batch, not streaming
+    ...
+```
+
+There is no streaming checkpoint here, so `skipChangeCommits` cannot be set and is not needed.
+
+Instead, on each refresh the MV **re-reads the full current state** of `silver_curated_events` and recomputes the result.
+
+| Scenario | Gold CDC (`write_to_gold_table_cdc.py`) | Gold MV (`write_to_gold_table.py`) |
+|----------|----------------------------------------|----------------------------------|
+| Delete on raw (with `skipChangeCommits` on silver/curated) | Row **remains** in gold CDC | Row **remains** — curated unchanged, so MV unchanged |
+| Delete on `silver_curated_events` directly | Row **remains** — `skipChangeCommits` ignores the delete | Row **removed** on next MV refresh — MV mirrors curated's current contents |
+
+So the two gold outputs can **diverge** if someone edits curated directly: the CDC table keeps old rows; the materialized view reflects the deletion after refresh. If you need identical behavior, use streaming + `skipChangeCommits` for both, or switch both to Option B (AUTO CDC with delete propagation).
 
 ### Result
 
@@ -398,7 +483,9 @@ Choose a value larger than your maximum expected delay between raw change and pi
 
 ### Materialized view gold
 
-`gold_employee_summary_deduped` in `write_to_gold_table.py` uses `refresh_policy="auto"`. After curated data changes (including deletes under Option B), the view recomputes on refresh. It does not need AUTO CDC, but refresh latency is higher than the streaming gold table.
+`gold_employee_summary_deduped` in `write_to_gold_table.py` uses `refresh_policy="auto"` with `spark.read.table()` (batch). **`skipChangeCommits` does not apply** — see the [Gold materialized view](#gold-materialized-view--cannot-use-skipchangecommits) section under Option A.
+
+After curated data changes, the view recomputes on refresh. Refresh latency is higher than the streaming gold CDC table, and behavior differs from gold CDC when curated is edited directly.
 
 ---
 
@@ -406,9 +493,10 @@ Choose a value larger than your maximum expected delay between raw change and pi
 
 | File | Option A (ignore) | Option B (propagate) |
 |------|-------------------|----------------------|
-| `read_and_write_to_silver_schema_enforced.py` | Add `skipChangeCommits` | Replace with AUTO CDC source + flow |
-| `read_and_write_to_silver_curated_dlt_dq.py` | Optional: add `skipChangeCommits` | Replace with AUTO CDC source + flow |
-| `write_to_gold_table_cdc.py` | No change | Add `readChangeFeed`, `apply_as_deletes` |
+| `read_and_write_to_silver_schema_enforced.py` | Add `skipChangeCommits` on `readStream` | Replace with AUTO CDC source + flow |
+| `read_and_write_to_silver_curated_dlt_dq.py` | Add `skipChangeCommits` on `readStream` | Replace with AUTO CDC source + flow |
+| `write_to_gold_table_cdc.py` | Add `skipChangeCommits` on source view `readStream` | Add `readChangeFeed`, `apply_as_deletes` |
+| `write_to_gold_table.py` | No change (`spark.read.table` — not eligible) | No change (MV refreshes from curated state) |
 | `read_and_write_to_raw.py` | No change | No change |
 
 ---
