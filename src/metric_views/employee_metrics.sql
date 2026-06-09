@@ -3,7 +3,7 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  source: workspace.default.silver_curated_events__ENV__
+  source: workspace.default.silver_curated_events___ENV__
   comment: Employee metrics for HR analytics and reporting
   
   dimensions:
