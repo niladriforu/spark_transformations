@@ -69,8 +69,17 @@ jobs:
       - name: Create employee_metrics metric view
         env:
           ENV: ${{ github.event.inputs.target || 'dev' }}
+          SQL_WAREHOUSE_ID: ${{ secrets.SQL_WAREHOUSE_ID }}
         run: |
           sed "s/__ENV__/${ENV}/g" src/metric_views/employee_metrics.sql > /tmp/employee_metrics_${ENV}.sql
-          databricks sql execute \
-            --warehouse-id "${{ secrets.SQL_WAREHOUSE_ID }}" \
-            --file /tmp/employee_metrics_${ENV}.sql
+          RESPONSE=$(databricks api post /api/2.0/sql/statements --json "$(jq -n \
+            --arg warehouse_id "$SQL_WAREHOUSE_ID" \
+            --rawfile statement "/tmp/employee_metrics_${ENV}.sql" \
+            '{warehouse_id: $warehouse_id, statement: $statement, wait_timeout: "50s"}')")
+          STATE=$(echo "$RESPONSE" | jq -r '.status.state')
+          if [ "$STATE" != "SUCCEEDED" ]; then
+            echo "Metric view deployment failed with state: $STATE"
+            echo "$RESPONSE" | jq .
+            exit 1
+          fi
+          echo "Metric view deployed successfully"
