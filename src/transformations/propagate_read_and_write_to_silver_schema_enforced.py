@@ -1,9 +1,8 @@
 from pyspark import pipelines as dp
-from pyspark.sql import SparkSession
-from pyspark.sql import functions as F
+from pyspark.sql import SparkSession, functions as F
 from pyspark.sql.functions import expr, struct
 
-from pipeline_config import propagate_qualified_table, propagate_table, shared_qualified_table
+from pipeline_config import propagate_table, shared_qualified_table
 from schemas_silver import employee_schema_silver
 
 spark = SparkSession.getActiveSession() or SparkSession.builder.getOrCreate()
@@ -54,18 +53,21 @@ def enforce_schema(df_raw):
         F.struct(*rescue_cols).alias("_rescue_data"),
     )
 
-    is_bad = F.array_max(F.array([
-        F.col(f"_rescue_data.{field.name}").isNotNull()
-        for field in employee_schema_silver.fields
-    ]))
+    is_bad = F.array_max(
+        F.array(
+            [
+                F.col(f"_rescue_data.{field.name}").isNotNull()
+                for field in employee_schema_silver.fields
+            ]
+        )
+    )
 
     return df_casted.withColumn("_is_bad", is_bad)
 
 
 def read_raw_cdf():
     return (
-        spark.readStream
-        .option("readChangeFeed", "true")
+        spark.readStream.option("readChangeFeed", "true")
         .table(shared_qualified_table("raw_events"))
         .filter(F.col("_change_type").isin("insert", "update_postimage", "delete"))
     )
@@ -74,20 +76,16 @@ def read_raw_cdf():
 @dp.temporary_view(name=propagate_table("silver_events_source"))
 def silver_events_source_propagate():
     df_with_quality = enforce_schema(read_raw_cdf())
-    return (
-        df_with_quality
-        .filter((F.col("_change_type") == "delete") | ~F.col("_is_bad"))
-        .drop("_is_bad", "_rescue_data")
+    return df_with_quality.filter((F.col("_change_type") == "delete") | ~F.col("_is_bad")).drop(
+        "_is_bad", "_rescue_data"
     )
 
 
 @dp.temporary_view(name=propagate_table("silver_bad_events_source"))
 def silver_bad_events_source_propagate():
     df_with_quality = enforce_schema(read_raw_cdf())
-    return (
-        df_with_quality
-        .filter((F.col("_change_type") == "delete") | F.col("_is_bad"))
-        .drop("_is_bad", "_rescue_data")
+    return df_with_quality.filter((F.col("_change_type") == "delete") | F.col("_is_bad")).drop(
+        "_is_bad", "_rescue_data"
     )
 
 

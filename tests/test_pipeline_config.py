@@ -22,10 +22,7 @@ def test_table_with_variant(spark):
 
 
 def test_qualified_table(spark):
-    assert (
-        pipeline_config.qualified_table("raw_events")
-        == "workspace.default.raw_events_dev"
-    )
+    assert pipeline_config.qualified_table("raw_events") == "workspace.default.raw_events_dev"
 
 
 def test_propagate_table(spark):
@@ -41,8 +38,7 @@ def test_propagate_qualified_table(spark):
 
 def test_shared_qualified_table(spark):
     assert (
-        pipeline_config.shared_qualified_table("raw_events")
-        == "workspace.default.raw_events_dev"
+        pipeline_config.shared_qualified_table("raw_events") == "workspace.default.raw_events_dev"
     )
 
 

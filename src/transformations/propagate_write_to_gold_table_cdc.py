@@ -1,6 +1,5 @@
 from pyspark import pipelines as dp
-from pyspark.sql import SparkSession
-from pyspark.sql import functions as F
+from pyspark.sql import SparkSession, functions as F
 from pyspark.sql.functions import expr, struct
 
 from pipeline_config import propagate_qualified_table, propagate_table
@@ -13,20 +12,21 @@ CDF_COLUMNS = ["_change_type", "_commit_version", "_commit_timestamp"]
 @dp.temporary_view(name=propagate_table("gold_employee_source_cdc"))
 def gold_employee_source_cdc_propagate():
     df = (
-        spark.readStream
-        .option("readChangeFeed", "true")
+        spark.readStream.option("readChangeFeed", "true")
         .table(propagate_qualified_table("silver_curated_events"))
         .filter(F.col("_change_type").isin("insert", "update_postimage", "delete"))
     )
 
-    return df.withColumns({
-        "age": F.floor(F.months_between(F.current_date(), F.col("dob")) / 12),
-        "tenure_years": F.floor(F.months_between(F.current_date(), F.col("joining_date")) / 12),
-        "salary_band": F.when(F.col("salary") < 30000, "Junior")
-                        .when(F.col("salary") < 60000, "Mid")
-                        .when(F.col("salary") < 100000, "Senior")
-                        .otherwise("Executive"),
-    })
+    return df.withColumns(
+        {
+            "age": F.floor(F.months_between(F.current_date(), F.col("dob")) / 12),
+            "tenure_years": F.floor(F.months_between(F.current_date(), F.col("joining_date")) / 12),
+            "salary_band": F.when(F.col("salary") < 30000, "Junior")
+            .when(F.col("salary") < 60000, "Mid")
+            .when(F.col("salary") < 100000, "Senior")
+            .otherwise("Executive"),
+        }
+    )
 
 
 dp.create_streaming_table(

@@ -115,25 +115,25 @@ Metric view: `employee_metrics_<env>` (reads primary curated table).
 
 ---
 
-# Steps for good performance tuning techniques for your GOLD table 
+# Steps for good performance tuning techniques for your GOLD table
 ## **1. delta.enableLiquidClustering: "true"**
 
-**Default:** Not enabled (must use CLUSTER BY clause)  
+**Default:** Not enabled (must use CLUSTER BY clause)
 **Purpose:** Enables liquid clustering for automatic data organization and optimization. Liquid clustering replaces traditional partitioning and Z-ordering with dynamic clustering keys that adapt to query patterns. It reduces write conflicts, improves data skipping, and works seamlessly with predictive optimization for automatic maintenance.
 
 ## **2. delta.autoOptimize.optimizeWrite: "true"**
 
-**Default:** (none) - Not enabled by default for all operations  
+**Default:** (none) - Not enabled by default for all operations
 **Purpose:** Automatically optimizes file layout during writes by using 128 MB as target file size. Reduces small files written to partitions by shuffling data before writing. Eliminates need for manual coalesce(n) or repartition(n) calls. Default enabled for MERGE, UPDATE, DELETE operations in DBR 9.1+.
 
 ## **3. delta.autoOptimize.autoCompact: "true"**
 
-**Default:** (none) - Not enabled by default  
+**Default:** (none) - Not enabled by default
 **Purpose:** Automatically compacts small files within table partitions synchronously after writes complete. Runs on the same cluster performing the write. Uses 128 MB target file size (or auto for dynamic sizing). Works independently from predictive optimization.
 
 ## **4. delta.enablePredictiveOptimization: "true"**
 
-**Default:** Enabled by default for accounts created after **November 11, 2024**. Older accounts are being gradually enabled through August 2026.  
+**Default:** Enabled by default for accounts created after **November 11, 2024**. Older accounts are being gradually enabled through August 2026.
 **Purpose:** Enables automatic serverless maintenance operations (OPTIMIZE, VACUUM, automatic liquid clustering, statistics collection). Databricks intelligently identifies tables needing maintenance and schedules operations. Eliminates manual performance tuning burden.
 
 ## **5. delta.targetFileSize: "256mb"**
@@ -149,20 +149,20 @@ Metric view: `employee_metrics_<env>` (reads primary curated table).
 
 ## **8. delta.enableChangeDataFeed: "true"**
 
-**Default:** **false**  
+**Default:** **false**
 **Purpose:** Enables Change Data Feed (CDF) to track row-level changes (inserts, updates, deletes) between table versions. Essential for CDC pipelines, audit trails, and incremental ETL. Adds metadata columns (_change_type, *commit*version, *commit*timestamp). Only captures changes after enablement.
 
 ## **9. delta.enableDeletionVectors: "true"**
 
-**Default:** **Varies by workspace** - New workspaces may have auto-enable setting; older workspaces typically default to disabled  
+**Default:** **Varies by workspace** - New workspaces may have auto-enable setting; older workspaces typically default to disabled
 **Purpose:** Accelerates DELETE, UPDATE, MERGE operations by marking rows as deleted without rewriting Parquet files. Dramatically improves write performance on large tables. Required for row-level concurrency (DBR 14.2+). Works with Photon's predictive I/O.
 
 ## **10. delta.checkpointInterval: "50"**
 
-**Default:** **10** (transactions)  
+**Default:** **10** (transactions)
 **Purpose:** Number of transactions between Delta log checkpoints. Checkpoints speed up query planning by snapshotting transaction log state. Default 10 is optimal for most cases. Setting 50 means less frequent checkpoints, which can delay metadata reads but reduces checkpoint write overhead for high-frequency write workloads.
 
 ## **11. delta.columnMapping.mode: "name"**
 
-**Default:** **"none"**  
+**Default:** **"none"**
 **Purpose:** Enables metadata-only column renames/drops without rewriting data files. Allows special characters (spaces, ;{}()) in column names. **"name" mode** maps physical to logical column names. **"id" mode** (recommended) uses unique IDs for better compatibility. Required for UniForm (Iceberg compatibility). Upgrades table protocol to reader v2/writer v5.

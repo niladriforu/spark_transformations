@@ -27,8 +27,7 @@ BAD_RULES = {
 
 def read_propagate_silver_cdf_for_quarantine():
     return (
-        spark.readStream
-        .option("readChangeFeed", "true")
+        spark.readStream.option("readChangeFeed", "true")
         .table(propagate_qualified_table("silver_events"))
         .filter(col("_change_type").isin("insert", "update_postimage", "delete"))
     )
@@ -36,8 +35,7 @@ def read_propagate_silver_cdf_for_quarantine():
 
 def read_propagate_quarantine_cdf():
     return (
-        spark.readStream
-        .option("readChangeFeed", "true")
+        spark.readStream.option("readChangeFeed", "true")
         .table(propagate_qualified_table("silver_quarantine"))
         .filter(col("_change_type").isin("insert", "update_postimage", "delete"))
     )

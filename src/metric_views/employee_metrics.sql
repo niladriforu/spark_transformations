@@ -5,18 +5,18 @@ AS $$
   version: 1.1
   source: workspace.default.silver_curated_events___ENV__
   comment: Employee metrics for HR analytics and reporting
-  
+
   dimensions:
     - name: dept_id
       expr: dept_id
       display_name: Department ID
       comment: Employee department identifier
-    
+
     - name: joining_month
       expr: DATE_TRUNC('MONTH', joining_date)
       display_name: Joining Month
       comment: Month when employee joined
-    
+
     - name: age_bracket
       expr: |-
         CASE
@@ -26,7 +26,7 @@ AS $$
           ELSE '50+'
         END
       display_name: Age Bracket
-    
+
     - name: tenure_bracket
       expr: |-
         CASE
@@ -36,7 +36,7 @@ AS $$
           ELSE '5+ years'
         END
       display_name: Tenure Bracket
-  
+
   measures:
     - name: employee_count
       expr: COUNT(1)
@@ -47,7 +47,7 @@ AS $$
         decimal_places:
           type: exact
           places: 0
-    
+
     - name: total_salary
       expr: SUM(salary)
       display_name: Total Salary
@@ -58,7 +58,7 @@ AS $$
         decimal_places:
           type: exact
           places: 2
-    
+
     - name: avg_salary
       expr: AVG(salary)
       display_name: Average Salary
@@ -69,7 +69,7 @@ AS $$
         decimal_places:
           type: exact
           places: 2
-    
+
     - name: avg_tenure_years
       expr: AVG(FLOOR(MONTHS_BETWEEN(CURRENT_DATE(), joining_date) / 12))
       display_name: Average Tenure (Years)

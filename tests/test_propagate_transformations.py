@@ -159,7 +159,10 @@ def test_silver_curated_bad_events_source_null_empid(modules, spark):
     row["_change_type"] = "insert"
     row["empid"] = None
     _mock_cdf_read(propagate, cdf_df(spark, cdf_row(**row)))
-    assert propagate.silver_curated_bad_events_source_propagate().collect()[0].failure_reason == "NULL_EMPID"
+    assert (
+        propagate.silver_curated_bad_events_source_propagate().collect()[0].failure_reason
+        == "NULL_EMPID"
+    )
 
 
 def test_silver_curated_bad_events_source_invalid_salary(modules, spark):
@@ -220,9 +223,7 @@ def test_with_quarantine_columns(modules, spark):
     propagate = modules["propagate_read_and_write_to_silver_curated_alternate_dq"]
     row_bad = SILVER_ROW_BAD.asDict()
     row_bad["_change_type"] = "insert"
-    result = propagate.with_quarantine_columns(
-        cdf_df(spark, CDF_ROW, cdf_row(**row_bad))
-    )
+    result = propagate.with_quarantine_columns(cdf_df(spark, CDF_ROW, cdf_row(**row_bad)))
     rows = result.collect()
     assert any(row.is_quarantined for row in rows)
 

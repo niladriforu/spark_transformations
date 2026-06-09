@@ -4,8 +4,6 @@ from decimal import Decimal
 from pyspark.sql.types import StringType, StructField, StructType
 
 from conftest import (
-    CDF_DELETE_ROW,
-    CDF_ROW,
     RAW_STRING_ROW,
     SILVER_ROW,
     SILVER_ROW_BAD,

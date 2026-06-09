@@ -1,6 +1,5 @@
 from pyspark import pipelines as dp
-from pyspark.sql import SparkSession
-from pyspark.sql import functions as F
+from pyspark.sql import SparkSession, functions as F
 from pyspark.sql.functions import expr, struct
 
 from pipeline_config import propagate_qualified_table, propagate_table
@@ -21,8 +20,7 @@ CURATED_TABLE_PROPERTIES = {
 
 def read_propagate_silver_cdf():
     return (
-        spark.readStream
-        .option("readChangeFeed", "true")
+        spark.readStream.option("readChangeFeed", "true")
         .table(propagate_qualified_table("silver_events"))
         .filter(F.col("_change_type").isin("insert", "update_postimage", "delete"))
     )
@@ -30,21 +28,15 @@ def read_propagate_silver_cdf():
 
 def read_propagate_silver_bad_cdf():
     return (
-        spark.readStream
-        .option("readChangeFeed", "true")
+        spark.readStream.option("readChangeFeed", "true")
         .table(propagate_qualified_table("silver_bad_events"))
         .filter(F.col("_change_type").isin("insert", "update_postimage", "delete"))
     )
 
 
 def passes_curated_quality():
-    return (
-        (F.col("_change_type") == "delete")
-        | (
-            F.col("dob").isNotNull()
-            & F.col("empid").isNotNull()
-            & (F.col("salary") > 0)
-        )
+    return (F.col("_change_type") == "delete") | (
+        F.col("dob").isNotNull() & F.col("empid").isNotNull() & (F.col("salary") > 0)
     )
 
 
@@ -59,10 +51,10 @@ def silver_curated_bad_events_source_propagate():
     return df.withColumn(
         "failure_reason",
         F.when(F.col("_change_type") == "delete", "DELETED")
-         .when(F.col("dob").isNull(), "NULL_DOB")
-         .when(F.col("empid").isNull(), "NULL_EMPID")
-         .when(F.col("salary") <= 0, "INVALID_SALARY")
-         .otherwise("MULTIPLE_FAILURES"),
+        .when(F.col("dob").isNull(), "NULL_DOB")
+        .when(F.col("empid").isNull(), "NULL_EMPID")
+        .when(F.col("salary") <= 0, "INVALID_SALARY")
+        .otherwise("MULTIPLE_FAILURES"),
     )
 
 

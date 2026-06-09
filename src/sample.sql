@@ -1,7 +1,7 @@
 -- Replace dev with your target environment (dev or prod)
-select 
+select
     dept_id,
     measure(total_salary) as total_salary
-from 
+from
     workspace.default.employee_metrics_dev
 group by dept_id;

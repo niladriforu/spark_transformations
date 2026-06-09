@@ -1,15 +1,14 @@
 from pyspark import pipelines as dp
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import *
+from pyspark.sql.functions import array, col, concat_ws, expr, length, lit, when
 
 from pipeline_config import qualified_table, table
 
 spark = SparkSession.getActiveSession() or SparkSession.builder.getOrCreate()
 
-#DLT streaming tables expect append-only upstream sources by default. 
-# If you run DELETE (or UPDATE / MERGE) on raw_events, the stream typically errors 
+# DLT streaming tables expect append-only upstream sources by default.
+# If you run DELETE (or UPDATE / MERGE) on raw_events, the stream typically errors
 # with something like “Detected a data update … not supported”.
-
 
 
 bad_rules = {
@@ -19,51 +18,43 @@ bad_rules = {
     "valid_dept_format": "dept_id NOT LIKE 'D%'",
 }
 
+
 @dp.table(
     temporary=True,
     partition_cols=["is_quarantined"],
 )
 def silver_quarantine():
-    df = (
-        spark.readStream
-        .option("skipChangeCommits", "true")
-        .table(qualified_table("silver_events"))
+    df = spark.readStream.option("skipChangeCommits", "true").table(
+        qualified_table("silver_events")
     )
-    
+
     # Build reason_parts
     reason_parts = []
     for rule_name, rule_condition in bad_rules.items():
-        reason_parts.append(
-            when(expr(rule_condition), lit(rule_name)).otherwise(lit(None))
-        )
-    
+        reason_parts.append(when(expr(rule_condition), lit(rule_name)).otherwise(lit(None)))
+
     # First: Compute quarantine_reason
-    df = df.withColumn(
-        "quarantine_reason",
-        concat_ws("; ", array(*reason_parts))
-    )
-    
+    df = df.withColumn("quarantine_reason", concat_ws("; ", array(*reason_parts)))
+
     # Second: Derive is_quarantined from quarantine_reason
     # If reason is non-empty, record is quarantined
-    df = df.withColumn(
-        "is_quarantined",
-        length(col("quarantine_reason")) > 0
-    )
-    
+    df = df.withColumn("is_quarantined", length(col("quarantine_reason")) > 0)
+
     return df
 
+
 @dp.table(
-  name=table("silver_curated_events_manual_dq"),
-  comment="Curated silver events with multiple quality checks",
-  cluster_by=["dept_id", "joining_date"],
-  table_properties={
-    "delta.autoOptimize.optimizeWrite": "true",
-    "delta.autoOptimize.autoCompact": "true",
-    "delta.targetFileSize": "1gb",
-    "delta.enableChangeDataFeed": "true",
-    "delta.checkpointInterval": "100",
-    "delta.dataSkippingNumIndexedCols": "32"
-  }
+    name=table("silver_curated_events_manual_dq"),
+    comment="Curated silver events with multiple quality checks",
+    cluster_by=["dept_id", "joining_date"],
+    table_properties={
+        "delta.autoOptimize.optimizeWrite": "true",
+        "delta.autoOptimize.autoCompact": "true",
+        "delta.targetFileSize": "1gb",
+        "delta.enableChangeDataFeed": "true",
+        "delta.checkpointInterval": "100",
+        "delta.dataSkippingNumIndexedCols": "32",
+    },
 )
 def silver_curated_events_manual_dq():
     """
@@ -78,4 +69,3 @@ def silver_curated_events_manual_dq():
 def silver_curated_bad_events_manual_dq():
     """Quarantined records that failed quality checks"""
     return spark.readStream.table("silver_quarantine").filter(length(col("quarantine_reason")) > 0)
-

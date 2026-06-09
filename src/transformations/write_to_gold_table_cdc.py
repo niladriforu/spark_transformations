@@ -1,6 +1,5 @@
 from pyspark import pipelines as dp
-from pyspark.sql import SparkSession
-from pyspark.sql import functions as F
+from pyspark.sql import SparkSession, functions as F
 from pyspark.sql.functions import struct
 
 from pipeline_config import qualified_table, table
@@ -11,20 +10,20 @@ spark = SparkSession.getActiveSession() or SparkSession.builder.getOrCreate()
 @dp.temporary_view(name=table("gold_employee_source_cdc"))
 def gold_employee_source_cdc():
     """Streaming source with computed columns for CDC gold table"""
-    df = (
-        spark.readStream
-        .option("skipChangeCommits", "true")
-        .table(qualified_table("silver_curated_events"))
+    df = spark.readStream.option("skipChangeCommits", "true").table(
+        qualified_table("silver_curated_events")
     )
 
-    return df.withColumns({
-        "age": F.floor(F.months_between(F.current_date(), F.col("dob")) / 12),
-        "tenure_years": F.floor(F.months_between(F.current_date(), F.col("joining_date")) / 12),
-        "salary_band": F.when(F.col("salary") < 30000, "Junior")
-                        .when(F.col("salary") < 60000, "Mid")
-                        .when(F.col("salary") < 100000, "Senior")
-                        .otherwise("Executive")
-    })
+    return df.withColumns(
+        {
+            "age": F.floor(F.months_between(F.current_date(), F.col("dob")) / 12),
+            "tenure_years": F.floor(F.months_between(F.current_date(), F.col("joining_date")) / 12),
+            "salary_band": F.when(F.col("salary") < 30000, "Junior")
+            .when(F.col("salary") < 60000, "Mid")
+            .when(F.col("salary") < 100000, "Senior")
+            .otherwise("Executive"),
+        }
+    )
 
 
 dp.create_streaming_table(
@@ -38,7 +37,7 @@ dp.create_streaming_table(
         "delta.enableChangeDataFeed": "true",
         "delta.enableDeletionVectors": "true",
         "delta.checkpointInterval": "50",
-        "delta.columnMapping.mode": "name"
+        "delta.columnMapping.mode": "name",
     },
 )
 
