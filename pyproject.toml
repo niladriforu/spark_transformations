@@ -31,7 +31,7 @@ exclude = [
 select = ["E", "F", "I", "UP", "B"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["pipeline_config", "schemas", "schemas_silver"]
+known-first-party = ["pipeline_config", "schemas", "schemas_silver", "spark_uc"]
 combine-as-imports = true
 
 [tool.ruff.format]
