@@ -9,7 +9,7 @@ spark = SparkSession.getActiveSession() or SparkSession.builder.getOrCreate()
 
 
 @dp.materialized_view(
-  name=table("gold_employee_summary"),
+  name=table("gold_employee_summary_deduped"),
   comment="Gold layer: Materialized view with business logic and performance optimizations",
   cluster_by=["empid", "dept_id", "joining_date"],
   refresh_policy="auto",
@@ -23,7 +23,7 @@ spark = SparkSession.getActiveSession() or SparkSession.builder.getOrCreate()
     "delta.columnMapping.mode": "name"
   }
 )
-def gold_employee_summary():
+def gold_employee_summary_deduped():
     """Materialized view with computed columns for analytics"""
     df = spark.read.table(qualified_table("silver_curated_events"))
 
