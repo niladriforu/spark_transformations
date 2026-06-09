@@ -13,32 +13,7 @@ resources:
         pipeline.environment: ${var.environment}
         pipeline.catalog: ${var.catalog}
         pipeline.schema: ${var.schema}
+      root_path: ../src/transformations
       libraries:
-        - file:
-            path: ../src/transformations/pipeline_config.py
-        - file:
-            path: ../src/transformations/schemas.py
-        - file:
-            path: ../src/transformations/schemas_silver.py
-        - file:
-            path: ../src/transformations/read_and_write_to_raw.py
-        - file:
-            path: ../src/transformations/read_and_write_to_silver_schema_enforced.py
-        - file:
-            path: ../src/transformations/read_and_write_to_silver_curated_dlt_dq.py
-        - file:
-            path: ../src/transformations/read_and_write_to_silver_curated_alternate_dq.py
-        - file:
-            path: ../src/transformations/write_to_gold_table.py
-        - file:
-            path: ../src/transformations/write_to_gold_table_cdc.py
-        - file:
-            path: ../src/transformations/propagate_read_and_write_to_silver_schema_enforced.py
-        - file:
-            path: ../src/transformations/propagate_read_and_write_to_silver_curated_dlt_dq.py
-        - file:
-            path: ../src/transformations/propagate_read_and_write_to_silver_curated_alternate_dq.py
-        - file:
-            path: ../src/transformations/propagate_write_to_gold_table.py
-        - file:
-            path: ../src/transformations/propagate_write_to_gold_table_cdc.py
+        - glob:
+            include: ../src/transformations/**

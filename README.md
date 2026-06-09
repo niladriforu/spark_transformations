@@ -30,7 +30,7 @@ The token needs permissions to create/update DLT pipelines, run pipelines, and e
 
 1. **Validate** — `databricks bundle validate`
 2. **Deploy** — syncs DLT pipeline code and creates/updates `cdc-automated-workflow-<target>`
-3. **Run pipeline** — starts `cdc-automated-workflow-<target>`, then `cdc-propagate-workflow-<target>`
+3. **Run pipeline** — starts `cdc-automated-workflow-<target>` (primary + propagate tracks)
 4. **Metric view** — creates `employee_metrics_<env>` on the SQL warehouse
 
 ### Environment-based naming
@@ -47,7 +47,7 @@ Table and metric view names include the bundle target as a suffix (`dev` or `pro
 | Gold CDC (SCD2) | `gold_employee_summary_cdc_dev` | `gold_employee_summary_cdc_prod` |
 | Metric view | `employee_metrics_dev` | `employee_metrics_prod` |
 
-**Propagate pipeline** (`cdc-propagate-workflow-<target>`) reads shared `raw_events_<env>` and writes parallel tables with `_propagate_` in the name:
+**Propagate track** (same pipeline, parallel tables with `_propagate_` suffix) reads shared `raw_events_<env>` via CDF and propagates deletes/updates:
 
 | Object | dev example | prod example |
 |--------|-------------|--------------|
@@ -77,7 +77,6 @@ export ENV=dev
 databricks bundle validate -t dev
 databricks bundle deploy -t dev
 databricks bundle run employee_cdc_pipeline -t dev
-databricks bundle run employee_cdc_propagate_pipeline -t dev
 sed "s/__ENV__/${ENV}/g" src/metric_views/employee_metrics.sql > /tmp/employee_metrics_${ENV}.sql
 databricks api post /api/2.0/sql/statements --json "$(jq -n \
   --arg warehouse_id "<warehouse-id>" \
@@ -104,9 +103,15 @@ Then retry `databricks bundle deploy -t dev`.
 
 ### Pipeline lineage
 
+Single DLT pipeline (`cdc-automated-workflow-<env>`). Both tracks ingest from the same `raw_events_<env>` table:
+
 ```
-UC Volume (CSV) → raw_events_<env> → silver_events_<env> / silver_bad_events_<env> → silver_curated_events_<env> → employee_metrics_<env>
+UC Volume (CSV) → raw_events_<env>
+                      ├─ Primary track   → silver_events_<env> → silver_curated_events_<env> → gold_*_<env>
+                      └─ Propagate track → silver_events_propagate_<env> → silver_curated_events_propagate_<env> → gold_*_propagate_<env>
 ```
+
+Metric view: `employee_metrics_<env>` (reads primary curated table).
 
 ---
 
