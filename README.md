@@ -62,7 +62,10 @@ databricks bundle validate -t dev
 databricks bundle deploy -t dev
 databricks bundle run employee_cdc_pipeline -t dev
 sed "s/__ENV__/${ENV}/g" src/metric_views/employee_metrics.sql > /tmp/employee_metrics_${ENV}.sql
-databricks sql execute --warehouse-id "<warehouse-id>" --file /tmp/employee_metrics_${ENV}.sql
+databricks api post /api/2.0/sql/statements --json "$(jq -n \
+  --arg warehouse_id "<warehouse-id>" \
+  --rawfile statement "/tmp/employee_metrics_${ENV}.sql" \
+  '{warehouse_id: $warehouse_id, statement: $statement, wait_timeout: "50s"}')"
 ```
 
 ### Troubleshooting: Terraform GPG key expired
