@@ -1,6 +1,7 @@
 from pyspark import pipelines as dp
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
+from pyspark.sql.window import Window
 
 from pipeline_config import qualified_table, table
 
@@ -26,7 +27,18 @@ def gold_employee_summary():
     """Materialized view with computed columns for analytics"""
     df = spark.read.table(qualified_table("silver_curated_events"))
 
-    return df.withColumns({
+    latest_by_empid = Window.partitionBy("empid").orderBy(
+        F.col("upd_tmst").desc_nulls_last(),
+        F.col("create_tmst").desc_nulls_last(),
+    )
+
+    df_latest = (
+        df.withColumn("_row_num", F.row_number().over(latest_by_empid))
+          .filter(F.col("_row_num") == 1)
+          .drop("_row_num")
+    )
+
+    return df_latest.withColumns({
         "age": F.floor(F.months_between(F.current_date(), F.col("dob")) / 12),
         "tenure_years": F.floor(F.months_between(F.current_date(), F.col("joining_date")) / 12),
         "salary_band": F.when(F.col("salary") < 30000, "Junior")
