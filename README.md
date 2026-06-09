@@ -30,7 +30,7 @@ The token needs permissions to create/update DLT pipelines, run pipelines, and e
 
 1. **Validate** — `databricks bundle validate`
 2. **Deploy** — syncs DLT pipeline code and creates/updates `cdc-automated-workflow-<target>`
-3. **Run pipeline** — starts a DLT pipeline update
+3. **Run pipeline** — starts `cdc-automated-workflow-<target>`, then `cdc-propagate-workflow-<target>`
 4. **Metric view** — creates `employee_metrics_<env>` on the SQL warehouse
 
 ### Environment-based naming
@@ -43,7 +43,23 @@ Table and metric view names include the bundle target as a suffix (`dev` or `pro
 | Silver table | `silver_events_dev` | `silver_events_prod` |
 | Bad records | `silver_bad_events_dev` | `silver_bad_events_prod` |
 | Curated table | `silver_curated_events_dev` | `silver_curated_events_prod` |
+| Gold MV | `gold_employee_summary_deduped_dev` | `gold_employee_summary_deduped_prod` |
+| Gold CDC (SCD2) | `gold_employee_summary_cdc_dev` | `gold_employee_summary_cdc_prod` |
 | Metric view | `employee_metrics_dev` | `employee_metrics_prod` |
+
+**Propagate pipeline** (`cdc-propagate-workflow-<target>`) reads shared `raw_events_<env>` and writes parallel tables with `_propagate_` in the name:
+
+| Object | dev example | prod example |
+|--------|-------------|--------------|
+| Silver | `silver_events_propagate_dev` | `silver_events_propagate_prod` |
+| Silver bad | `silver_bad_events_propagate_dev` | `silver_bad_events_propagate_prod` |
+| Curated (DLT DQ) | `silver_curated_events_propagate_dev` | `silver_curated_events_propagate_prod` |
+| Curated bad | `silver_curated_bad_events_propagate_dev` | `silver_curated_bad_events_propagate_prod` |
+| Quarantine | `silver_quarantine_propagate_dev` | `silver_quarantine_propagate_prod` |
+| Curated (manual DQ) | `silver_curated_events_manual_dq_propagate_dev` | `silver_curated_events_manual_dq_propagate_prod` |
+| Curated bad (manual DQ) | `silver_curated_bad_events_manual_dq_propagate_dev` | `silver_curated_bad_events_manual_dq_propagate_prod` |
+| Gold MV | `gold_employee_summary_deduped_propagate_dev` | `gold_employee_summary_deduped_propagate_prod` |
+| Gold CDC (SCD2) | `gold_employee_summary_cdc_propagate_dev` | `gold_employee_summary_cdc_propagate_prod` |
 
 The suffix is set via `pipeline.environment` in `resources/pipeline.yml`, driven by the `environment` variable in `databricks.yml`.
 
@@ -61,6 +77,7 @@ export ENV=dev
 databricks bundle validate -t dev
 databricks bundle deploy -t dev
 databricks bundle run employee_cdc_pipeline -t dev
+databricks bundle run employee_cdc_propagate_pipeline -t dev
 sed "s/__ENV__/${ENV}/g" src/metric_views/employee_metrics.sql > /tmp/employee_metrics_${ENV}.sql
 databricks api post /api/2.0/sql/statements --json "$(jq -n \
   --arg warehouse_id "<warehouse-id>" \
