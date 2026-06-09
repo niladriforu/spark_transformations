@@ -25,10 +25,7 @@ except ImportError as exc:
     ) from exc
 
 # Minimum versions per https://docs.unitycatalog.io/integrations/unity-catalog-spark/
-UC_SPARK_PACKAGES = (
-    "io.delta:delta-spark_2.12:3.2.1,"
-    "io.unitycatalog:unitycatalog-spark_2.12:0.2.1"
-)
+UC_SPARK_PACKAGES = "io.delta:delta-spark_2.12:3.2.1,io.unitycatalog:unitycatalog-spark_2.12:0.2.1"
 
 UC_URI = os.environ.get("UC_URI", "http://unity-catalog:8081")
 SPARK_MASTER = os.environ.get("SPARK_MASTER", "spark://spark-master:7077")
@@ -39,8 +36,8 @@ __all__ = ["create_spark_session", "print_session_info", "display", "spark_ui_ur
 
 def display(obj, n: int = 20, truncate: bool = True, **kwargs) -> None:
     """Render a Spark DataFrame as an HTML table in Jupyter (Databricks-style)."""
-    from pyspark.sql import DataFrame as SparkDataFrame
     from IPython.display import display as ipy_display
+    from pyspark.sql import DataFrame as SparkDataFrame
 
     if isinstance(obj, SparkDataFrame):
         ipy_display(obj.limit(n).toPandas(), **kwargs)
@@ -73,7 +70,10 @@ def create_spark_session(
         .master(SPARK_MASTER)
         .config("spark.jars.packages", UC_SPARK_PACKAGES)
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
-        .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
+        .config(
+            "spark.sql.catalog.spark_catalog",
+            "org.apache.spark.sql.delta.catalog.DeltaCatalog",
+        )
         .config("spark.sql.defaultCatalog", default_catalog)
         .config("spark.eventLog.gcMetrics.enabled", "false")
         .config("spark.ui.showConsoleProgress", "false")
