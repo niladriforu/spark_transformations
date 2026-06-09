@@ -69,7 +69,11 @@ def add_quality_checks(df_raw):
   }
 )
 def silver_events():
-    df_raw = spark.readStream.table(qualified_table("raw_events"))
+    df_raw = (
+        spark.readStream
+        .option("skipChangeCommits", "true")
+        .table(qualified_table("raw_events"))
+    )
     df_with_quality = add_quality_checks(df_raw)
     # Return only good records
     return df_with_quality.filter(~F.col("_is_bad")).drop("_is_bad", "_rescue_data")
@@ -88,7 +92,11 @@ def silver_events():
   }
 )
 def silver_bad_events():
-    df_raw = spark.readStream.table(qualified_table("raw_events"))
+    df_raw = (
+        spark.readStream
+        .option("skipChangeCommits", "true")
+        .table(qualified_table("raw_events"))
+    )
     df_with_quality = add_quality_checks(df_raw)
     # Return only good records
     return df_with_quality.filter(F.col("_is_bad"))

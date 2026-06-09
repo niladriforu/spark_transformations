@@ -6,6 +6,11 @@ from pipeline_config import qualified_table, table
 
 spark = SparkSession.getActiveSession() or SparkSession.builder.getOrCreate()
 
+#DLT streaming tables expect append-only upstream sources by default. 
+# If you run DELETE (or UPDATE / MERGE) on raw_events, the stream typically errors 
+# with something like “Detected a data update … not supported”.
+
+
 
 bad_rules = {
     "valid_dob": "dob IS  NULL",
@@ -19,7 +24,11 @@ bad_rules = {
     partition_cols=["is_quarantined"],
 )
 def silver_quarantine():
-    df = spark.readStream.table(qualified_table("silver_events"))
+    df = (
+        spark.readStream
+        .option("skipChangeCommits", "true")
+        .table(qualified_table("silver_events"))
+    )
     
     # Build reason_parts
     reason_parts = []

@@ -30,13 +30,21 @@ def silver_curated_events():
     - Drops records with null dob, empid, or invalid salary
     - Logs (but keeps) records with invalid dept_id format
     """
-    return spark.readStream.table(qualified_table("silver_events"))
+    return (
+        spark.readStream
+        .option("skipChangeCommits", "true")
+        .table(qualified_table("silver_events"))
+    )
 
 
 @dp.table(name=table("silver_curated_bad_events"))
 def silver_curated_bad_events():
     """Quarantined records that failed quality checks"""
-    df = spark.readStream.table(qualified_table("silver_events"))
+    df = (
+        spark.readStream
+        .option("skipChangeCommits", "true")
+        .table(qualified_table("silver_events"))
+    )
 
     # Capture all records that would be dropped by expectations
     df_bad = df.filter(

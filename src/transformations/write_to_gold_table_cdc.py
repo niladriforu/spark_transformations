@@ -11,7 +11,11 @@ spark = SparkSession.getActiveSession() or SparkSession.builder.getOrCreate()
 @dp.temporary_view(name=table("gold_employee_source_cdc"))
 def gold_employee_source_cdc():
     """Streaming source with computed columns for CDC gold table"""
-    df = spark.readStream.table(qualified_table("silver_curated_events"))
+    df = (
+        spark.readStream
+        .option("skipChangeCommits", "true")
+        .table(qualified_table("silver_curated_events"))
+    )
 
     return df.withColumns({
         "age": F.floor(F.months_between(F.current_date(), F.col("dob")) / 12),
