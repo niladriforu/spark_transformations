@@ -8,11 +8,11 @@ def environment():
 
 
 def catalog():
-    return spark.conf.get("pipeline.catalog", "workspace")
+    return spark.conf.get("pipeline.catalog", "main")
 
 
 def schema():
-    return spark.conf.get("pipeline.schema", "default")
+    return spark.conf.get("pipeline.schema", "dbdemos_sdp_cdc")
 
 
 def table_variant():
