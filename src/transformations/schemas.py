@@ -11,6 +11,6 @@ employee_schema_raw = StructType(
         StructField("dept_id", StringType(), True),
         StructField("create_tmst", StringType(), True),  # Read as STRING first
         StructField("upd_tmst", StringType(), True),  # Read as STRING first
-        StructField("_corrupt_record", StringType(), True),  # ← add this
+        StructField("_corrupt_record", StringType(), True),  # ← add this to capture bad records
     ]
 )
