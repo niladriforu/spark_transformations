@@ -7,10 +7,10 @@ include:
 variables:
   catalog:
     description: Unity Catalog name
-    default: workspace
+    default: main
   schema:
     description: Unity Catalog schema name
-    default: default
+    default: dbdemos_sdp_cdc
   reprocess_days:
     description: Number of days to reprocess from (0 = use default cutoff)
     default: "0"
