@@ -26,15 +26,15 @@ targets:
     default: true
     mode: development
     variables:
-      catalog: workspace
-      schema: default
+      catalog: main
+      schema: dbdemos_sdp_cdc
       reprocess_days: "0"
       environment: dev
 
   prod:
     mode: production
     variables:
-      catalog: workspace
-      schema: default
+      catalog: main
+      schema: dbdemos_sdp_cdc
       reprocess_days: "0"
       environment: prod
