@@ -1,7 +1,7 @@
 resources:
   pipelines:
     employee_cdc_pipeline:
-      name: cdc-automated-workflow-${bundle.target}
+      name: cdc-workflow-${bundle.target}
       catalog: ${var.catalog}
       target: ${var.schema}
       channel: CURRENT

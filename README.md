@@ -14,6 +14,26 @@ The workflow **CDC_AUTOMATED_WORKFLOW** (`.github/workflows/cdc_automated_workfl
 - SQL warehouse running (for metric view deployment)
 - Upload sample CSVs from `data/` to the volume path above
 
+> **Tip: Changing catalog or target schema**
+>
+> Table location is controlled by `catalog` and `schema` in `databricks.yml`, which flow into `resources/pipeline.yml` (`catalog` + `target`). The defaults in `pipeline_config.py` are only fallbacks when those conf keys are not set.
+>
+> If you change `catalog` or `schema` after the pipeline has already been deployed, `bundle deploy` may fail with:
+>
+> ```text
+> Changing target schema is not allowed. Reason: DLT does not yet support changing target schema
+> of a pipeline that uses an Default Storage catalog. Please create a new pipeline if you need
+> to change the target schema.
+> ```
+>
+> DLT locks the pipeline's target schema at creation time. To move to a new catalog/schema:
+>
+> 1. **Create a new pipeline** — rename the pipeline in `resources/pipeline.yml` (e.g. `cdc-automated-workflow-main-${bundle.target}`), deploy, then delete the old pipeline.
+> 2. **Delete the old pipeline** — remove `cdc-automated-workflow-<target>` in the Databricks UI, then redeploy.
+> 3. **Keep the existing schema** — revert `databricks.yml` to the original catalog/schema.
+>
+> Also update the Auto Loader volume path in `read_and_write_to_raw.py` and the metric view SQL to match the new catalog/schema.
+
 ### 2. GitHub secrets
 
 Go to **GitHub → your repo → Settings → Secrets and variables → Actions → New repository secret**:
