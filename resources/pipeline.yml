@@ -1,7 +1,9 @@
 resources:
   pipelines:
-    employee_cdc_pipeline:
-      name: cdc-workflow-${bundle.target}
+    # Resource key must change when target schema changes; DLT cannot update
+    # target on an existing Default Storage catalog pipeline.
+    employee_cdc_pipeline_main_dbdemos:
+      name: cdc-workflow-${var.catalog}-${var.schema}-${bundle.target}
       catalog: ${var.catalog}
       target: ${var.schema}
       channel: CURRENT

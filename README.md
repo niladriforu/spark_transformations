@@ -28,8 +28,8 @@ The workflow **CDC_AUTOMATED_WORKFLOW** (`.github/workflows/cdc_automated_workfl
 >
 > DLT locks the pipeline's target schema at creation time. To move to a new catalog/schema:
 >
-> 1. **Create a new pipeline** — rename the pipeline in `resources/pipeline.yml` (e.g. `cdc-automated-workflow-main-${bundle.target}`), deploy, then delete the old pipeline.
-> 2. **Delete the old pipeline** — remove `cdc-automated-workflow-<target>` in the Databricks UI, then redeploy.
+> 1. **Create a new pipeline** — change the resource key under `resources/pipelines` in `resources/pipeline.yml` (e.g. `employee_cdc_pipeline_main_dbdemos`) and include catalog/schema in the pipeline `name`, deploy, then delete the old pipeline.
+> 2. **Delete the old pipeline** — remove the previous pipeline (e.g. `cdc-automated-workflow-<target>` or `cdc-workflow-<target>`) in the Databricks UI, then redeploy.
 > 3. **Keep the existing schema** — revert `databricks.yml` to the original catalog/schema.
 >
 > Also update the Auto Loader volume path in `read_and_write_to_raw.py` and the metric view SQL to match the new catalog/schema.
@@ -49,8 +49,8 @@ The token needs permissions to create/update DLT pipelines, run pipelines, and e
 ### 3. What the workflow deploys
 
 1. **Validate** — `databricks bundle validate`
-2. **Deploy** — syncs DLT pipeline code and creates/updates `cdc-automated-workflow-<target>`
-3. **Run pipeline** — starts `cdc-automated-workflow-<target>` (primary + propagate tracks)
+2. **Deploy** — syncs DLT pipeline code and creates/updates `cdc-workflow-<catalog>-<schema>-<target>`
+3. **Run pipeline** — starts `cdc-workflow-<catalog>-<schema>-<target>` (primary + propagate tracks)
 4. **Metric view** — creates `employee_metrics_<env>` on the SQL warehouse
 
 ### Environment-based naming
@@ -96,7 +96,7 @@ export DATABRICKS_TOKEN="dapi..."
 export ENV=dev
 databricks bundle validate -t dev
 databricks bundle deploy -t dev
-databricks bundle run employee_cdc_pipeline -t dev
+databricks bundle run employee_cdc_pipeline_main_dbdemos -t dev
 sed "s/__ENV__/${ENV}/g" src/metric_views/employee_metrics.sql > /tmp/employee_metrics_${ENV}.sql
 databricks api post /api/2.0/sql/statements --json "$(jq -n \
   --arg warehouse_id "<warehouse-id>" \
@@ -123,7 +123,7 @@ Then retry `databricks bundle deploy -t dev`.
 
 ### Pipeline lineage
 
-Single DLT pipeline (`cdc-automated-workflow-<env>`). Both tracks ingest from the same `raw_events_<env>` table:
+Single DLT pipeline (`cdc-workflow-<catalog>-<schema>-<env>`). Both tracks ingest from the same `raw_events_<env>` table:
 
 ```
 UC Volume (CSV) → raw_events_<env>
