@@ -100,10 +100,10 @@ jobs:
           version: 0.297.2
 
       - name: Deploy bundle
-        run: databricks bundle deploy -t ${{ github.event.inputs.target || 'dev' }}
+        run: databricks bundle deploy --auto-approve -t ${{ github.event.inputs.target || 'dev' }}
 
       - name: Start DLT pipeline
-        run: databricks bundle run employee_cdc_pipeline -t ${{ github.event.inputs.target || 'dev' }}
+        run: databricks bundle run employee_cdc_pipeline_main_dbdemos -t ${{ github.event.inputs.target || 'dev' }}
 
   deploy-metric-view:
     name: Deploy metric view
